@@ -162,7 +162,7 @@ fun! s:f.arg_complete(left, right)
         endif
         if has_key(i,'kind')
             " p: prototype/procedure; f: function; m: member
-            if ((!get_member_only && (i.kind=='p' || i.kind=='f'))||
+            if (((!get_member_only || has_key(i.class)) && (i.kind=='p' || i.kind=='f'))||
                         \(i.kind == 'm' && get_member_only)|| i.kind=='d') &&
                         \i.name=~funpat
                 if &filetype!='cpp' || !has_key(i,'class') ||
