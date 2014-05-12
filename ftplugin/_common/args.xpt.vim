@@ -21,7 +21,11 @@ fun! GetSignature(cmd, filename)
     endif
 
     if file != ''
-        let lines = readfile(file, 0)
+        try
+            let lines = readfile(file, 0)
+        catch /.*/
+            let lines = ''
+        endtry
         if a:cmd =~# '^\m\d\+'
             let __l = lines[a:cmd -1]
             let __index = a:cmd - 1
@@ -222,7 +226,8 @@ fun! s:f.arg_complete(left, right)
             let file_line=file_line . ':' . i.cmd
         endif
         " let b:res+=[name.' ('.(index(fil_tag,i)+1).'/'.len(fil_tag).') '.file_line]
-        let res+=[{'word':substitute(i.signature, '\m^(\s*\|\s*)$\|,\zs\s\+', '','g'), 'kind':i.kind, 'menu': name.' ('.(index(fil_tag,i)+1).'/'.len(fil_tag).') '.file_line}]
+        let res+=[{'word':substitute(i.signature, '\m^(\s*\|\s*)$\|,\zs\s\+', '','g'),
+                    \ 'kind':i.kind, 'menu': name.' ('.(index(fil_tag,i)+1).'/'.len(fil_tag).') '.file_line}]
     endfor
 
     let dic = {}
