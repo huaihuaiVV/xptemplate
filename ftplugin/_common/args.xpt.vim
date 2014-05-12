@@ -2,20 +2,91 @@ XPTemplate priorit=all
 
 let s:f = g:XPTfuncs()
 
+fun! GetSignature(cmd, filename)
+    let file = ''
+    if a:cmd == "" || a:filename == ""
+        return ''
+    endif
+    if filereadable(a:filename)
+        let file = a:filename
+    elseif &tr
+        for f in tagfiles()
+            if filereadable(fnamemodify(f, ':p:h') . '/' . a:filename)
+                let file = fnamemodify(f, ':p:h') . '/' . a:filename
+                break
+            endif
+        endfor
+    elseif filereadable('.' . a:filename)
+        let file = '.' . a:filename
+    endif
+
+    if file != ''
+        let lines = readfile(file, 0)
+        if a:cmd =~# '^\m\d\+'
+            let __l = lines[a:cmd -1]
+            let __index = a:cmd - 1
+            " let lines = readfile(file, 0)[a:cmd - 1]
+            " if lines =~# '\m\C^\s*#define\s\+\k\+([^)]*)'
+                " return substitute(lines,
+                            " \ '\m\C^\s*#define\s\+\k\+\(([^)]*)\).*$', '\1', '')
+            " endif
+            return substitute(__l, '\m^.*\((.*)\).*$','\1','')
+        elseif a:cmd =~# '\m^/.*/$'
+            let __index = 0
+            let cmd = '\M' . substitute(a:cmd, '\m^/\(.*\)/$', '\1','')
+            for __l in lines
+                if __l =~# cmd
+                    let __l = substitute(__l, cmd, '&','')
+                    let __l = substitute(__l, '\m^[^(]*', '','')
+                    let __l = substitute(__l, '\m^(.*)\s*\ze(', '','')
+                    if __l !~# '\m(' || __l == ''
+                        "this is member variable..
+                        return ''
+                    endif
+                    let __index += 1
+                    break
+                endif
+                let __index += 1
+            endfor
+        endif
+        while __index < len(lines)
+            let _part = substitute(__l, '\m[^()]', '','g')
+            let part1 = substitute(_part, '\m)', '','g')
+            let part2 = substitute(_part, '\m(', '','g')
+            if len(part1) == len(part2) || match(__l, '\m;\|{\|}') != -1
+                return substitute(__l, '\m[^)]*$','','')
+            else
+                let __l .= lines[__index]
+            endif
+            let __index += 1
+        endwhile
+    endif
+    return ''
+endfun
+
 fun! s:f.arg_complete(left, right)
     let index =  getline('.')[col('.') - 1] == a:left? col('.') - 1 : col('.') - 2
     let remain_str = getline('.')[index+1:col('$')]
+    let upper_line =  getline(line('.') - 1)
     let ret = ''
     let str = getline('.')[:index]
     let res=[]
     let [ ml, mr ] = XPTmark()
     if str =~# '\m^\s*' . a:left
         let str = getline(line(".") - 1) . a:left
+        let upper_line = getline(line('.') - 2)
     endif
     if str == '' || str !~# '\m\k\+\s*' . a:left . '$'
         return ''
     endif
     let str = substitute(str, '\m\s*'. a:left . '\+$','', "")
+    if str =~# '\m\(\.\|->\)\s*\k\+$'
+        let get_member_only = 1
+    elseif str =~# '\m^\s*\k\+$' && upper_line =~# '\m\(\.\|->\)\s*$'
+        let get_member_only = 1
+    else
+        let get_member_only = 0
+    endif
     let name=substitute(str,'.\{-}\(\(\k\+::\)*\(\~\?\k*\|'.
                 \'operator\s\+new\(\[]\)\?\|'.
                 \'operator\s\+delete\(\[]\)\?\|'.
@@ -87,9 +158,8 @@ fun! s:f.arg_complete(left, right)
         endif
         if has_key(i,'kind')
             " p: prototype/procedure; f: function; m: member
-            if ((i.kind=='p' || i.kind=='f' || i.kind=='d') ||
-                        \(i.kind == 'm' && has_key(i,'cmd') &&
-                        \                  match(i.cmd,'(') != -1)) &&
+            if ((!get_member_only && (i.kind=='p' || i.kind=='f'))||
+                        \(i.kind == 'm' && get_member_only)|| i.kind=='d') &&
                         \i.name=~funpat
                 if &filetype!='cpp' || !has_key(i,'class') ||
                             \i.name!~'::' || i.name=~i.class
@@ -111,43 +181,26 @@ fun! s:f.arg_complete(left, right)
             endif
         endif
     endfor
-    if has_d_kind > 0 && (&ft == 'c' || &ft == 'cpp')
-        "add signature from file for macro def
-        let __index = 0
-        for __d in fil_tag
-            if !has_key(__d, 'signature') && __d.kind == 'd' && has_key(__d, 'filename')
-                        \&& (has_key(__d, 'cmd') && __d.cmd =~? '\m^\d\+$')
-                let __file = ''
-                if filereadable(__d['filename'])
-                    let __file = __d['filename']
-                elseif &tr
-                    for f in tagfiles()
-                        if filereadable(fnamemodify(f, ':p:h') . '/' . __d['filename'])
-                            let __file = fnamemodify(f, ':p:h') . '/' . __d['filename']
-                            break
-                        endif
-                    endfor
-                elseif filereadable('.' . __d['filename'])
-                        let __file = '.' . __d['filename']
-                endif
 
-               if __file != ''
-                   let __lines = readfile(__file, 0, __d.cmd)[__d.cmd - 1]
-                   if __lines =~# '\m\C^\s*#define\s\+' . __d.name . '([^)]*)'
-                       call extend(__d,{'signature': substitute(__lines, '\m\C^\s*#define\s\+' . __d.name . '\(([^)]*)\).*$', '\1', '')})
-                   endif
-               endif
+    let __index = 0
+    for __d in fil_tag
+        if !has_key(__d, 'signature') && has_key(__d, 'cmd') && has_key(__d, 'filename')
+            let __signature = GetSignature(__d.cmd, __d.filename)
+            if __signature != ''
+                call extend(__d, {'signature': __signature })
             endif
             if !has_key(__d, 'signature')
                 call remove(fil_tag, __index)
             else
                 let __index += 1
             endif
-        endfor
-    endif
+        endif
+    endfor
+
     if fil_tag==[]
         return
     endif
+
     for i in fil_tag
         if has_key(i,'kind') && has_key(i,'name') && has_key(i,'signature')
             let tmppat=substitute(escape(i.name,'[\*~^'),'^.*::','','')
