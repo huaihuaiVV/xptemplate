@@ -29,6 +29,7 @@ XPTinclude
       \ _preprocessor/c.like
       \ _structures/c.like
       \ _printf/c.like
+      \_common/args
 
 XPTinclude
       \ _loops/for
@@ -36,6 +37,11 @@ XPTinclude
 
 let s:f = g:XPTfuncs()
 
+
+
+XPT (	" func arg complete
+XSET arg=arg_complete('(', ')')
+(`arg^
 
 
 XPT _printfElts hidden 
