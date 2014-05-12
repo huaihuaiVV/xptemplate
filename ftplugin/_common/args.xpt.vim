@@ -189,11 +189,11 @@ fun! s:f.arg_complete(left, right)
             if __signature != ''
                 call extend(__d, {'signature': __signature })
             endif
-            if !has_key(__d, 'signature')
-                call remove(fil_tag, __index)
-            else
-                let __index += 1
-            endif
+        endif
+        if !has_key(__d, 'signature')
+            call remove(fil_tag, __index)
+        else
+            let __index += 1
         endif
     endfor
 
