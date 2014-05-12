@@ -52,42 +52,101 @@ fun! s:f.arg_complete(left, right)
             endif
         endif
     endif
+    function! Arg_tag_Sort(i1,i2)
+        let i1_prio=10
+        let i2_prio=10
+        if has_key(a:i1, 'kind')
+            if a:i1.kind=='f'
+                let i1_prio=-3
+            elseif a:i1.kind=='p'
+                let i1_prio=-2
+            elseif a:i1.kind=='d'
+                let i1_prio=-1
+            endif
+        endif
+
+        if has_key(a:i2, 'kind')
+            if a:i2.kind=='f'
+                let i2_prio=-3
+            elseif a:i2.kind=='p'
+                let i2_prio=-2
+            elseif a:i2.kind=='d'
+                let i2_prio=-1
+            endif
+        endif
+        return i1_prio - i2_prio
+    endfunction
+    call sort(ftags, 'Arg_tag_Sort')
     let fil_tag=[]
     let has_f_kind=0
+    let has_p_kind=0
+    let has_d_kind=0
     for i in ftags
-        if !has_key(i,'name') || !has_key(i, 'signature')
+        if !has_key(i,'name')
             continue
         endif
         if has_key(i,'kind')
             " p: prototype/procedure; f: function; m: member
-            if ((i.kind=='p' || i.kind=='f') ||
+            if ((i.kind=='p' || i.kind=='f' || i.kind=='d') ||
                         \(i.kind == 'm' && has_key(i,'cmd') &&
                         \                  match(i.cmd,'(') != -1)) &&
                         \i.name=~funpat
                 if &filetype!='cpp' || !has_key(i,'class') ||
                             \i.name!~'::' || i.name=~i.class
-                    if i.kind=='p' && has_f_kind>0
+                    if (i.kind=='p' && has_f_kind>0) || (i.kind=='d' && (has_f_kind > 0 || has_p_kind > 0))
+                        continue
+                    endif
+                    if (i.kind=='p' || i.kind=='f') && !has_key(i, 'signature')
                         continue
                     endif
                     let fil_tag+=[i]
                     if i.kind=='f'
                         let has_f_kind+=1
+                    elseif i.kind=='p'
+                        let hsd_p_kind+=1
+                    elseif i.kind=='d'
+                        let has_d_kind+=1
                     endif
                 endif
             endif
         endif
     endfor
+    if has_d_kind > 0 && (&ft == 'c' || &ft == 'cpp')
+        "add signature from file for macro def
+        let __index = 0
+        for __d in fil_tag
+            if !has_key(__d, 'signature') && __d.kind == 'd' && has_key(__d, 'filename')
+                        \&& (has_key(__d, 'cmd') && __d.cmd =~? '\m^\d\+$')
+                let __file = ''
+                if filereadable(__d['filename'])
+                    let __file = __d['filename']
+                elseif &tr
+                    for f in tagfiles()
+                        if filereadable(fnamemodify(f, ':p:h') . '/' . __d['filename'])
+                            let __file = fnamemodify(f, ':p:h') . '/' . __d['filename']
+                            break
+                        endif
+                    endfor
+                elseif filereadable('.' . __d['filename'])
+                        let __file = '.' . __d['filename']
+                endif
+
+               if __file != ''
+                   let __lines = readfile(__file, 0, __d.cmd)[__d.cmd - 1]
+                   if __lines =~# '\m\C^\s*#define\s\+' . __d.name . '([^)]*)'
+                       call extend(__d,{'signature': substitute(__lines, '\m\C^\s*#define\s\+' . __d.name . '\(([^)]*)\).*$', '\1', '')})
+                   endif
+               endif
+            endif
+            if !has_key(__d, 'signature')
+                call remove(fil_tag, __index)
+            else
+                let __index += 1
+            endif
+        endfor
+    endif
     if fil_tag==[]
         return
-    endif
-    if has_f_kind>0
-        let index=0
-        for tag in fil_tag
-            if tag.kind == 'p'
-                unlet fil_tag[index]
-            endif
-            let index += 1
-        endfor
     endif
     for i in fil_tag
         if has_key(i,'kind') && has_key(i,'name') && has_key(i,'signature')
@@ -149,8 +208,3 @@ fun! s:f.arg_complete(left, right)
     let ret = substitute(ret, '\m,\zs', ml . '$SPop' . mr, 'g')
     return ret . remain_str
 endfunction
-
-XPT (	" func arg complete
-XSET arg=arg_complete('(', ')')
-(`arg^
-

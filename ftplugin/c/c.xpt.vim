@@ -29,7 +29,7 @@ XPTinclude
       \ _preprocessor/c.like
       \ _structures/c.like
       \ _printf/c.like
-      \_common/args
+      \ _common/args
 
 XPTinclude
       \ _loops/for
