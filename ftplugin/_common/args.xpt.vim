@@ -29,12 +29,7 @@ fun! GetSignature(cmd, filename)
         if a:cmd =~# '^\m\d\+'
             let __l = lines[a:cmd -1]
             let __index = a:cmd - 1
-            " let lines = readfile(file, 0)[a:cmd - 1]
-            " if lines =~# '\m\C^\s*#define\s\+\k\+([^)]*)'
-                " return substitute(lines,
-                            " \ '\m\C^\s*#define\s\+\k\+\(([^)]*)\).*$', '\1', '')
-            " endif
-            return substitute(__l, '\m^.*\((.*)\).*$','\1','')
+            return substitute(__l, '\m\s*#\s*define\s\+\k\+\(([^)]*)\).*$', '\1', '')
         elseif a:cmd =~# '\m^/.*/$'
             let __index = 0
             let cmd = '\M' . substitute(a:cmd, '\m^/\(.*\)/$', '\1','')
@@ -54,6 +49,8 @@ fun! GetSignature(cmd, filename)
             endfor
         endif
         while __index < len(lines)
+            "remove strings
+            let _part = substitute(__l, '\v(''([^'']|\\'')*'')|("([^"]|\\")*")', '', 'g')
             let _part = substitute(__l, '\m[^()]', '','g')
             let part1 = substitute(_part, '\m)', '','g')
             let part2 = substitute(_part, '\m(', '','g')
@@ -162,7 +159,7 @@ fun! s:f.arg_complete(left, right)
         endif
         if has_key(i,'kind')
             " p: prototype/procedure; f: function; m: member
-            if (((!get_member_only || has_key(i.class)) && (i.kind=='p' || i.kind=='f'))||
+            if (((!get_member_only || has_key(i, 'class')) && (i.kind=='p' || i.kind=='f'))||
                         \(i.kind == 'm' && get_member_only)|| i.kind=='d') &&
                         \i.name=~funpat
                 if &filetype!='cpp' || !has_key(i,'class') ||
