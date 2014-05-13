@@ -81,13 +81,19 @@ fun! s:f.arg_complete(left, right)
         return ''
     endif
     let str = substitute(str, '\m\s*'. a:left . '\+$','', "")
-    if str =~# '\m\(\.\|->\)\s*\k\+$'
-        let get_member_only = 1
-    elseif str =~# '\m^\s*\k\+$' && upper_line =~# '\m\(\.\|->\)\s*$'
-        let get_member_only = 1
+
+    let member_dict = {'c':'\.\|->', 'cpp':'\.\|->', 'java':'\.' }
+    if has_key(member_dict, &ft)
+       if str =~# '\m\(' . member_dict[&ft] . '\)\s*\k\+$'
+                   \|| (str =~# '\m^\s*\k\+$' && upper_line =~# '\m\(' . member_dict[&ft] . '\)\s*$')
+           let get_member_only = 1
+        else
+           let get_member_only = 0
+       endif
     else
         let get_member_only = 0
     endif
+
     let name=substitute(str,'.\{-}\(\(\k\+::\)*\(\~\?\k*\|'.
                 \'operator\s\+new\(\[]\)\?\|'.
                 \'operator\s\+delete\(\[]\)\?\|'.
@@ -159,8 +165,8 @@ fun! s:f.arg_complete(left, right)
         endif
         if has_key(i,'kind')
             " p: prototype/procedure; f: function; m: member d: macro
-            if (((!get_member_only || has_key(i, 'class')) && (i.kind=='p' || i.kind=='f'))||
-                        \(i.kind == 'm' && get_member_only)|| i.kind=='d') &&
+            if ((!get_member_only || has_key(i, 'class')) && (i.kind=='p' || i.kind=='f'))||
+                        \(i.kind == 'm'|| i.kind=='d') &&
                         \i.name=~funpat
                 if &filetype!='cpp' || !has_key(i,'class') ||
                             \i.name!~'::' || i.name=~i.class
