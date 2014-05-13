@@ -53,6 +53,7 @@ XPTvar $SPop       ' '
 
 XPTinclude
       \ _common/common
+      \ _common/args
 
 
 XPTvar $CS    #
@@ -167,6 +168,9 @@ endfunction
 
 " ================================= Snippets ===================================
 
+XPT (	" func arg complete
+XSET arg=arg_complete('(', ')')
+(`arg^
 
 XPT _if hidden
 if `cond^:

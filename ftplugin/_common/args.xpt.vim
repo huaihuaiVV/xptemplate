@@ -158,16 +158,13 @@ fun! s:f.arg_complete(left, right)
             continue
         endif
         if has_key(i,'kind')
-            " p: prototype/procedure; f: function; m: member
+            " p: prototype/procedure; f: function; m: member d: macro
             if (((!get_member_only || has_key(i, 'class')) && (i.kind=='p' || i.kind=='f'))||
                         \(i.kind == 'm' && get_member_only)|| i.kind=='d') &&
                         \i.name=~funpat
                 if &filetype!='cpp' || !has_key(i,'class') ||
                             \i.name!~'::' || i.name=~i.class
                     if (i.kind=='p' && has_f_kind>0) || (i.kind=='d' && (has_f_kind > 0 || has_p_kind > 0))
-                        continue
-                    endif
-                    if (i.kind=='p' || i.kind=='f') && !has_key(i, 'signature')
                         continue
                     endif
                     let fil_tag+=[i]
