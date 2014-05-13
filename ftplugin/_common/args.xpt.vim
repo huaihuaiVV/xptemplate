@@ -163,11 +163,10 @@ fun! s:f.arg_complete(left, right)
         if !has_key(i,'name')
             continue
         endif
-        if has_key(i,'kind')
+        if i.name=~funpat && has_key(i,'kind')
             " p: prototype/procedure; f: function; m: member d: macro
             if ((!get_member_only || has_key(i, 'class')) && (i.kind=='p' || i.kind=='f'))||
-                        \(i.kind == 'm'|| i.kind=='d') &&
-                        \i.name=~funpat
+                        \(i.kind == 'm'|| i.kind=='d')
                 if &filetype!='cpp' || !has_key(i,'class') ||
                             \i.name!~'::' || i.name=~i.class
                     if (i.kind=='p' && has_f_kind>0) || (i.kind=='d' && (has_f_kind > 0 || has_p_kind > 0))
@@ -226,8 +225,11 @@ fun! s:f.arg_complete(left, right)
             let file_line=file_line . ':' . i.cmd
         endif
         " let b:res+=[name.' ('.(index(fil_tag,i)+1).'/'.len(fil_tag).') '.file_line]
-        let res+=[{'word':substitute(i.signature, '\m^(\s*\|\s*)$\|,\zs\s\+', '','g'),
-                    \ 'kind':i.kind, 'menu': name.' ('.(index(fil_tag,i)+1).'/'.len(fil_tag).') '.file_line}]
+        let word = substitute(i.signature, '\m^(\s*\|\s*)$\|,\zs\s\+', '','g')
+        if word == ''
+            let word = '##'
+        endif
+        let res+=[{'word': word , 'kind':i.kind, 'menu': name.' ('.(index(fil_tag,i)+1).'/'.len(fil_tag).') '.file_line}]
     endfor
 
     let dic = {}
@@ -261,8 +263,10 @@ fun! s:f.arg_complete(left, right)
         let ret = ''
 	echo "No signature found for symbol:" . name
     endif
+
     let ret = substitute(ret, '\m[^,]\+', ml .'&'.mr, 'g')
     let ret = substitute(ret, '\m^\|$', ml . '$SParg' . mr, 'g')
     let ret = substitute(ret, '\m,\zs', ml . '$SPop' . mr, 'g')
+    let ret = substitute(ret, '\m##', ml . mr, 'g')
     return ret . remain_str
 endfunction
