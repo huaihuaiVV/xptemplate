@@ -169,7 +169,7 @@ fun! s:f.arg_complete(left, right)
                         \(i.kind == 'm'|| i.kind=='d')
                 if &filetype!='cpp' || !has_key(i,'class') ||
                             \i.name!~'::' || i.name=~i.class
-                    if (i.kind=='p' && has_f_kind>0) || (i.kind=='d' && (has_f_kind > 0 || has_p_kind > 0))
+                    if i.kind=='p' && has_f_kind>0
                         continue
                     endif
                     let fil_tag+=[i]
@@ -227,7 +227,7 @@ fun! s:f.arg_complete(left, right)
         " let b:res+=[name.' ('.(index(fil_tag,i)+1).'/'.len(fil_tag).') '.file_line]
         let word = substitute(i.signature, '\m^(\s*\|\s*)$\|,\zs\s\+', '','g')
         if word == ''
-            let word = '##'
+            let word = '/*void*/'
         endif
         let res+=[{'word': word , 'kind':i.kind, 'menu': name.' ('.(index(fil_tag,i)+1).'/'.len(fil_tag).') '.file_line}]
     endfor
@@ -251,12 +251,16 @@ fun! s:f.arg_complete(left, right)
         let remain_str = ''
     endif
     if len(res) > 1
-        call complete(col('.'), res)
-	augroup arg_complete
-	autocmd CompleteDone <buffer>
-	augroup end
+        " call complete(col('.'), res)
+	" augroup arg_complete
+	" autocmd CompleteDone <buffer>
+	" augroup end
+        let choose = []
+        for __c in res
+            let choose += [__c.word]
+        endfor
         let ret =  getline('.')[index+1:col('.')]
-	return ''
+	return self.Choose(choose)
     elseif len(res) == 1
         let ret = res[0].word
     else
@@ -267,6 +271,6 @@ fun! s:f.arg_complete(left, right)
     let ret = substitute(ret, '\m[^,]\+', ml .'&'.mr, 'g')
     let ret = substitute(ret, '\m^\|$', ml . '$SParg' . mr, 'g')
     let ret = substitute(ret, '\m,\zs', ml . '$SPop' . mr, 'g')
-    let ret = substitute(ret, '\m##', ml . mr, 'g')
+    let ret = substitute(ret, '\V/*void*/', ml . mr, 'g')
     return ret . remain_str
 endfunction
