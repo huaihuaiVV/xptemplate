@@ -28,6 +28,7 @@ XPTinclude
       \ _condition/c.like
       \ _loops/java.for.like
       \ _loops/c.while.like
+      \ _common/args
 
 
 " ========================= Function and Variables =============================
@@ -35,6 +36,9 @@ XPTinclude
 " ================================= Snippets ===================================
 
 
+XPT (	" func arg complete
+XSET arg=arg_complete('(', ')')
+(`arg^
 
 
 XPT foreach " for \( .. : .. \)
