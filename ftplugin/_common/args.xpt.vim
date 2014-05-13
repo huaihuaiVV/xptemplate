@@ -163,7 +163,7 @@ fun! s:f.arg_complete(left, right)
         if !has_key(i,'name')
             continue
         endif
-        if i.name=~funpat && has_key(i,'kind')
+        if i.name =~# funpat && has_key(i,'kind')
             " p: prototype/procedure; f: function; m: member d: macro
             if ((!get_member_only || has_key(i, 'class')) && (i.kind=='p' || i.kind=='f'))||
                         \(i.kind == 'm'|| i.kind=='d')
