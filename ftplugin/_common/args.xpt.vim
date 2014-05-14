@@ -2,6 +2,22 @@ XPTemplate priorit=all
 
 let s:f = g:XPTfuncs()
 
+function! s:f.arg_tag_sort(i1,i2)
+    let i1_prio=10
+    let i2_prio=10
+    let prio = {'f': -3, 'p': -2, 'd': -1, 'm':'0'}
+
+    if has_key(a:i1, 'kind') && has_key(prio, a:i1.kind)
+        let i1_prio = prio[a:i1.kind]
+    endif
+
+    if has_key(a:i2, 'kind') && has_key(prio, a:i2.kind)
+        let i2_prio = prio[a:i2.kind]
+    endif
+
+    return i1_prio - i2_prio
+endfunction
+
 fun! s:f.getSignature(cmd, filename)
     let file = ''
     if a:cmd == "" || a:filename == ""
@@ -130,31 +146,9 @@ fun! s:f.arg_complete(left, right)
             endif
         endif
     endif
-    function! Arg_tag_Sort(i1,i2)
-        let i1_prio=10
-        let i2_prio=10
-        if has_key(a:i1, 'kind')
-            if a:i1.kind=='f'
-                let i1_prio=-3
-            elseif a:i1.kind=='p'
-                let i1_prio=-2
-            elseif a:i1.kind=='d'
-                let i1_prio=-1
-            endif
-        endif
 
-        if has_key(a:i2, 'kind')
-            if a:i2.kind=='f'
-                let i2_prio=-3
-            elseif a:i2.kind=='p'
-                let i2_prio=-2
-            elseif a:i2.kind=='d'
-                let i2_prio=-1
-            endif
-        endif
-        return i1_prio - i2_prio
-    endfunction
-    call sort(ftags, 'Arg_tag_Sort')
+    call sort(ftags, self.arg_tag_sort, g:XPTfuncs())
+
     let fil_tag=[]
     let has_f_kind=0
     let has_p_kind=0
@@ -224,7 +218,6 @@ fun! s:f.arg_complete(left, right)
         if i.cmd > 0
             let file_line=file_line . ':' . i.cmd
         endif
-        " let b:res+=[name.' ('.(index(fil_tag,i)+1).'/'.len(fil_tag).') '.file_line]
         let word = substitute(i.signature, '\m^(\s*\|\s*)$\|,\zs\s\+', '','g')
         if word == ''
             let word = '/*void*/'
@@ -240,6 +233,8 @@ fun! s:f.arg_complete(left, right)
     for l in keys(dic)
        call add(res, dic[l])
     endfor
+
+    call sort(res, self.arg_tag_sort, g:XPTfuncs())
 
     if len(res) > 0
         if b:remain_str == ''
