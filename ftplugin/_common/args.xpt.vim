@@ -32,8 +32,8 @@ fun! s:f.getSignature(cmd, filename)
                 break
             endif
         endfor
-    elseif filereadable('.' . a:filename)
-        let file = '.' . a:filename
+    elseif filereadable('./' . a:filename)
+        let file = './' . a:filename
     endif
 
     if file != ''
