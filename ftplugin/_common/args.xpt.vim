@@ -2,7 +2,7 @@ XPTemplate priorit=all
 
 let s:f = g:XPTfuncs()
 
-fun! GetSignature(cmd, filename)
+fun! s:f.getSignature(cmd, filename)
     let file = ''
     if a:cmd == "" || a:filename == ""
         return ''
@@ -188,7 +188,7 @@ fun! s:f.arg_complete(left, right)
     let __index = 0
     for __d in fil_tag
         if !has_key(__d, 'signature') && has_key(__d, 'cmd') && has_key(__d, 'filename')
-            let __signature = GetSignature(__d.cmd, __d.filename)
+            let __signature = self.getSignature(__d.cmd, __d.filename)
             if __signature != ''
                 call extend(__d, {'signature': __signature })
             endif
