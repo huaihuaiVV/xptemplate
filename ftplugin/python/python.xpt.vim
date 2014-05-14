@@ -170,6 +170,7 @@ endfunction
 
 XPT (	" func arg complete
 XSET arg=arg_complete('(', ')')
+XSET arg|post=args_post()
 (`arg^
 
 XPT _if hidden

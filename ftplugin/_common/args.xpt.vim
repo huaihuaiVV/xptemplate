@@ -67,11 +67,11 @@ endfun
 
 fun! s:f.arg_complete(left, right)
     let index =  getline('.')[col('.') - 1] == a:left? col('.') - 1 : col('.') - 2
-    let remain_str = getline('.')[index+1:col('$')]
+    let b:remain_str = getline('.')[index+1:col('$')]
+    let res=[]
     let upper_line =  getline(line('.') - 1)
     let ret = ''
     let str = getline('.')[:index]
-    let res=[]
     let [ ml, mr ] = XPTmark()
     if str =~# '\m^\s*' . a:left
         let str = getline(line(".") - 1) . a:left
@@ -242,35 +242,38 @@ fun! s:f.arg_complete(left, right)
     endfor
 
     if len(res) > 0
-        if remain_str == ''
-            let remain_str = a:right . ml . mr
+        if b:remain_str == ''
+            let b:remain_str = a:right . ml . mr
         else
-            let remain_str = ''
+            let b:remain_str = ''
         endif
     else
-        let remain_str = ''
+        let b:remain_str = ''
     endif
     if len(res) > 1
-        " call complete(col('.'), res)
-	" augroup arg_complete
-	" autocmd CompleteDone <buffer>
-	" augroup end
-        let choose = []
-        for __c in res
-            let choose += [__c.word]
-        endfor
-        let ret =  getline('.')[index+1:col('.')]
-	return self.Choose(choose)
+	return self.Choose(res)
     elseif len(res) == 1
         let ret = res[0].word
     else
         let ret = ''
-	echo "No signature found for symbol:" . name
+        echo "No signature found for symbol:" . name
     endif
 
     let ret = substitute(ret, '\m[^,]\+', ml .'&'.mr, 'g')
     let ret = substitute(ret, '\m^\|$', ml . '$SParg' . mr, 'g')
     let ret = substitute(ret, '\m,\zs', ml . '$SPop' . mr, 'g')
     let ret = substitute(ret, '\V/*void*/', ml . mr, 'g')
-    return ret . remain_str
+    return ret . b:remain_str
+endfunction
+
+fun! s:f.args_post()
+
+    let ret = self.V()
+    let [ ml, mr ] = XPTmark()
+    let ret = substitute(ret, '\m[^,]\+', ml .'&'.mr, 'g')
+    let ret = substitute(ret, '\m^\|$', ml . '$SParg' . mr, 'g')
+    let ret = substitute(ret, '\m,\zs', ml . '$SPop' . mr, 'g')
+    let ret = substitute(ret, '\V/*void*/', ml . mr, 'g')
+    return ret . b:remain_str
+
 endfunction
