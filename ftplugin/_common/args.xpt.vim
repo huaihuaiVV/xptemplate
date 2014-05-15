@@ -67,7 +67,7 @@ fun! s:f.getSignature(cmd, filename)
         while __index < len(lines)
             "remove strings
             let _part = substitute(__l, '\v(''([^'']|\\'')*'')|("([^"]|\\")*")', '', 'g')
-            let _part = substitute(__l, '\m[^()]', '','g')
+            let _part = substitute(_part, '\m[^()]', '','g')
             let part1 = substitute(_part, '\m)', '','g')
             let part2 = substitute(_part, '\m(', '','g')
             if len(part1) == len(part2) || match(__l, '\m;\|{\|}') != -1
